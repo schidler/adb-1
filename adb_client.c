@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
-#include <zipfile/zipfile.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
