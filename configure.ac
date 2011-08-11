@@ -6,7 +6,7 @@ AC_INIT(adb, 2.2,zhangn1985@gmail.com)
 AC_CONFIG_SRCDIR([src/adb.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
-AM_PROG_CC_C_O
+AC_PROG_CC
 # Checks for programs.
 
 # Checks for libraries.
