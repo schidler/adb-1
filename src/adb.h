@@ -183,6 +183,7 @@ struct atransport
         /* used to identify transports for clients */
     char *serial;
     char *product;
+    int adb_port; // Use for emulators (local transport)
 
         /* a list of adisconnect callbacks called when the transport is kicked */
     int          kicked;
@@ -221,7 +222,7 @@ void install_local_socket(asocket *s);
 void remove_socket(asocket *s);
 void close_all_sockets(atransport *t);
 
-#define  LOCAL_CLIENT_PREFIX  "U67XX-"
+#define  LOCAL_CLIENT_PREFIX  "emulator-"
 
 asocket *create_local_socket(int fd);
 asocket *create_local_service_socket(const char *destination);
@@ -237,8 +238,8 @@ void handle_packet(apacket *p, atransport *t);
 void send_packet(apacket *p, atransport *t);
 
 void get_my_path(char *s, size_t maxLen);
-int launch_server();
-int adb_main(int is_daemon);
+int launch_server(int server_port);
+int adb_main(int is_daemon, int server_port);
 
 
 /* transports are ref-counted
@@ -262,6 +263,7 @@ void   run_transport_disconnects( atransport*  t );
 void   kick_transport( atransport*  t );
 
 /* initialize a transport object's func pointers and state */
+int get_available_local_transport_index();
 int  init_socket_transport(atransport *t, int s, int port, int local);
 void init_usb_transport(atransport *t, usb_handle *usb, int state);
 
@@ -273,6 +275,7 @@ void register_socket_transport(int s, const char *serial, int port, int local);
 
 /* this should only be used for the "adb disconnect" command */
 void unregister_transport(atransport *t);
+void unregister_all_tcp_transports();
 
 void register_usb_transport(usb_handle *h, const char *serial, unsigned writeable);
 
@@ -282,12 +285,7 @@ void unregister_usb_transport(usb_handle *usb);
 atransport *find_transport(const char *serial);
 
 int service_to_fd(const char *name);
-
 asocket *host_service_to_socket(const char*  name, const char *serial);
-
-
-
-
 
 
 /* packet allocator */
@@ -348,8 +346,8 @@ typedef enum {
 #define print_packet(tag,p) do {} while (0)
 #endif
 
-#define ADB_PORT 5037
-#define ADB_LOCAL_TRANSPORT_PORT 5555
+#define DEFAULT_ADB_PORT 5037
+#define DEFAULT_ADB_LOCAL_TRANSPORT_PORT 5555
 
 #define ADB_CLASS              0xff
 #define ADB_SUBCLASS           0x42
@@ -358,6 +356,7 @@ typedef enum {
 
 void local_init(int port);
 int  local_connect(int  port);
+int  local_connect_arbitrary_ports(int console_port, int adb_port);
 
 /* usb host/client interface */
 void usb_init();

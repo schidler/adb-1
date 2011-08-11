@@ -5,7 +5,6 @@ adb_SOURCES= adb.c \
              services.c \
              transport.c \
 	     adb_client.c  \
-             shlist.c  \
              transport_local.c \
 	     centraldir.c  \
              socket_inaddr_any_server.c  \

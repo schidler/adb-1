@@ -26,14 +26,28 @@
 
 #include "usb_vendors.h"
 
-
-
+#ifdef HAVE_BIG_ENDIAN
+#define H4(x)	(((x) & 0xFF000000) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | (((x) & 0x000000FF) << 24)
+static inline void fix_endians(apacket *p)
+{
+    p->msg.command     = H4(p->msg.command);
+    p->msg.arg0        = H4(p->msg.arg0);
+    p->msg.arg1        = H4(p->msg.arg1);
+    p->msg.data_length = H4(p->msg.data_length);
+    p->msg.data_check  = H4(p->msg.data_check);
+    p->msg.magic       = H4(p->msg.magic);
+}
+unsigned host_to_le32(unsigned n)
+{
+    return H4(n);
+}
+#else
 #define fix_endians(p) do {} while (0)
 unsigned host_to_le32(unsigned n)
 {
     return n;
 }
-
+#endif
 
 static int remote_read(apacket *p, atransport *t)
 {

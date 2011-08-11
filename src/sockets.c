@@ -65,8 +65,11 @@ asocket *find_local_socket(unsigned id)
     asocket *result = NULL;
 
     adb_mutex_lock(&socket_list_lock);
-    for(s = local_socket_list.next; s != &local_socket_list && !result; s = s->next) {
-        if(s->id == id) result = s;
+    for (s = local_socket_list.next; s != &local_socket_list; s = s->next) {
+        if (s->id == id) {
+            result = s;
+            break;
+        }
     }
     adb_mutex_unlock(&socket_list_lock);
 
@@ -218,10 +221,12 @@ static void local_socket_close_locked(asocket *s)
     if(s->peer) {
         s->peer->peer = 0;
         // tweak to avoid deadlock
-        if (s->peer->close == local_socket_close)
+        if (s->peer->close == local_socket_close) {
             local_socket_close_locked(s->peer);
-        else
+        } else {
             s->peer->close(s->peer);
+        }
+        s->peer = 0;
     }
 
         /* If we are already closing, or if there are no
@@ -366,7 +371,7 @@ static void local_socket_event_func(int fd, unsigned ev, void *_s)
 asocket *create_local_socket(int fd)
 {
     asocket *s = calloc(1, sizeof(asocket));
-    if(s == 0) fatal("cannot allocate socket");
+    if (s == NULL) fatal("cannot allocate socket");
     install_local_socket(s);
     s->fd = fd;
     s->enqueue = local_socket_enqueue;
@@ -474,7 +479,7 @@ asocket *create_remote_socket(unsigned id, atransport *t)
     asocket *s = calloc(1, sizeof(aremotesocket));
     adisconnect*  dis = &((aremotesocket*)s)->disconnect;
 
-    if(s == 0) fatal("cannot allocate socket");
+    if (s == NULL) fatal("cannot allocate socket");
     s->id = id;
     s->enqueue = remote_socket_enqueue;
     s->ready = remote_socket_ready;
@@ -558,6 +563,32 @@ unsigned unhex(unsigned char *s, int len)
     return n;
 }
 
+/* skip_host_serial return the position in a string
+   skipping over the 'serial' parameter in the ADB protocol,
+   where parameter string may be a host:port string containing
+   the protocol delimiter (colon). */
+char *skip_host_serial(char *service) {
+    char *first_colon, *serial_end;
+
+    first_colon = strchr(service, ':');
+    if (!first_colon) {
+        /* No colon in service string. */
+        return NULL;
+    }
+    serial_end = first_colon;
+    if (isdigit(serial_end[1])) {
+        serial_end++;
+        while ((*serial_end) && isdigit(*serial_end)) {
+            serial_end++;
+        }
+        if ((*serial_end) != ':') {
+            // Something other than numbers was found, reset the end.
+            serial_end = first_colon;
+        }
+    }
+    return serial_end;
+}
+
 static int smart_socket_enqueue(asocket *s, apacket *p)
 {
     unsigned len;
@@ -613,8 +644,8 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
         char* serial_end;
         service += strlen("host-serial:");
 
-        // serial number should follow "host:"
-        serial_end = strchr(service, ':');
+        // serial number should follow "host:" and could be a host:port string.
+        serial_end = skip_host_serial(service);
         if (serial_end) {
             *serial_end = 0; // terminate string
             serial = service;
@@ -733,6 +764,7 @@ static void smart_socket_close(asocket *s)
     if(s->peer) {
         s->peer->peer = 0;
         s->peer->close(s->peer);
+        s->peer = 0;
     }
     free(s);
 }
@@ -741,8 +773,7 @@ asocket *create_smart_socket(void (*action_cb)(asocket *s, const char *act))
 {
     D("Creating smart socket \n");
     asocket *s = calloc(1, sizeof(asocket));
-    if(s == 0) fatal("cannot allocate socket");
-    s->id = 0;
+    if (s == NULL) fatal("cannot allocate socket");
     s->enqueue = smart_socket_enqueue;
     s->ready = smart_socket_ready;
     s->close = smart_socket_close;
