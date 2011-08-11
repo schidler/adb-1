@@ -21,12 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef HAVE_WINSOCK
-#include <winsock2.h>
-typedef int  socklen_t;
-#elif HAVE_SYS_SOCKET_H
+
 #include <sys/socket.h>
-#endif
+
 
 #define ANDROID_SOCKET_ENV_PREFIX	"ANDROID_SOCKET_"
 #define ANDROID_SOCKET_DIR		"/dev/socket"

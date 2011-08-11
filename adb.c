@@ -476,20 +476,6 @@ int local_name_to_fd(const char *name)
         ret = socket_loopback_server(port, SOCK_STREAM);
         return ret;
     }
-#ifndef HAVE_WIN32_IPC  /* no Unix-domain sockets on Win32 */
-    // It's non-sensical to support the "reserved" space on the adb host side
-    if(!strncmp(name, "local:", 6)) {
-        return socket_local_server(name + 6,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    } else if(!strncmp(name, "localabstract:", 14)) {
-        return socket_local_server(name + 14,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    } else if(!strncmp(name, "localfilesystem:", 16)) {
-        return socket_local_server(name + 16,
-                ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
-    }
-
-#endif
     printf("unknown local portname '%s'\n", name);
     return -1;
 }
@@ -583,21 +569,15 @@ nomem:
     return 0;
 }
 
-#ifdef HAVE_FORKEXEC
+
 static void sigchld_handler(int n)
 {
     int status;
     while(waitpid(-1, &status, WNOHANG) > 0) ;
 }
-#endif
 
-#ifdef HAVE_WIN32_PROC
-static BOOL WINAPI ctrlc_handler(DWORD type)
-{
-    exit(STATUS_CONTROL_C_EXIT);
-    return TRUE;
-}
-#endif
+
+
 
 static void adb_cleanup(void)
 {
@@ -606,29 +586,7 @@ static void adb_cleanup(void)
 
 void start_logging(void)
 {
-#ifdef HAVE_WIN32_PROC
-    char    temp[ MAX_PATH ];
-    FILE*   fnul;
-    FILE*   flog;
 
-    GetTempPath( sizeof(temp) - 8, temp );
-    strcat( temp, "adb.log" );
-
-    /* Win32 specific redirections */
-    fnul = fopen( "NUL", "rt" );
-    if (fnul != NULL)
-        stdin[0] = fnul[0];
-
-    flog = fopen( temp, "at" );
-    if (flog == NULL)
-        flog = fnul;
-
-    setvbuf( flog, NULL, _IONBF, 0 );
-
-    stdout[0] = flog[0];
-    stderr[0] = flog[0];
-    fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
-#else
     int fd;
 
     fd = unix_open("/dev/null", O_RDONLY);
@@ -641,90 +599,11 @@ void start_logging(void)
     dup2(fd, 1);
     dup2(fd, 2);
     fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
-#endif
+
 }
 
 int launch_server()
 {
-#ifdef HAVE_WIN32_PROC
-    /* we need to start the server in the background                    */
-    /* we create a PIPE that will be used to wait for the server's "OK" */
-    /* message since the pipe handles must be inheritable, we use a     */
-    /* security attribute                                               */
-    HANDLE                pipe_read, pipe_write;
-    SECURITY_ATTRIBUTES   sa;
-    STARTUPINFO           startup;
-    PROCESS_INFORMATION   pinfo;
-    char                  program_path[ MAX_PATH ];
-    int                   ret;
-
-    sa.nLength = sizeof(sa);
-    sa.lpSecurityDescriptor = NULL;
-    sa.bInheritHandle = TRUE;
-
-    /* create pipe, and ensure its read handle isn't inheritable */
-    ret = CreatePipe( &pipe_read, &pipe_write, &sa, 0 );
-    if (!ret) {
-        fprintf(stderr, "CreatePipe() failure, error %ld\n", GetLastError() );
-        return -1;
-    }
-
-    SetHandleInformation( pipe_read, HANDLE_FLAG_INHERIT, 0 );
-
-    ZeroMemory( &startup, sizeof(startup) );
-    startup.cb = sizeof(startup);
-    startup.hStdInput  = GetStdHandle( STD_INPUT_HANDLE );
-    startup.hStdOutput = pipe_write;
-    startup.hStdError  = GetStdHandle( STD_ERROR_HANDLE );
-    startup.dwFlags    = STARTF_USESTDHANDLES;
-
-    ZeroMemory( &pinfo, sizeof(pinfo) );
-
-    /* get path of current program */
-    GetModuleFileName( NULL, program_path, sizeof(program_path) );
-
-    ret = CreateProcess(
-            program_path,                              /* program path  */
-            "adb fork-server server",
-                                    /* the fork-server argument will set the
-                                       debug = 2 in the child           */
-            NULL,                   /* process handle is not inheritable */
-            NULL,                    /* thread handle is not inheritable */
-            TRUE,                          /* yes, inherit some handles */
-            DETACHED_PROCESS, /* the new process doesn't have a console */
-            NULL,                     /* use parent's environment block */
-            NULL,                    /* use parent's starting directory */
-            &startup,                 /* startup info, i.e. std handles */
-            &pinfo );
-
-    CloseHandle( pipe_write );
-
-    if (!ret) {
-        fprintf(stderr, "CreateProcess failure, error %ld\n", GetLastError() );
-        CloseHandle( pipe_read );
-        return -1;
-    }
-
-    CloseHandle( pinfo.hProcess );
-    CloseHandle( pinfo.hThread );
-
-    /* wait for the "OK\n" message */
-    {
-        char  temp[3];
-        DWORD  count;
-
-        ret = ReadFile( pipe_read, temp, 3, &count, NULL );
-        CloseHandle( pipe_read );
-        if ( !ret ) {
-            fprintf(stderr, "could not read ok from ADB Server, error = %ld\n", GetLastError() );
-            return -1;
-        }
-        if (count != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
-            fprintf(stderr, "ADB server didn't ACK\n" );
-            return -1;
-        }
-    }
-#elif defined(HAVE_FORKEXEC)
     char    path[PATH_MAX];
     int     fd[2];
 
@@ -772,9 +651,6 @@ int launch_server()
 
         setsid();
     }
-#else
-#error "cannot implement background server start on this platform"
-#endif
     return 0;
 }
 
@@ -782,12 +658,10 @@ int adb_main(int is_daemon)
 {
 
     atexit(adb_cleanup);
-#ifdef HAVE_WIN32_PROC
-    SetConsoleCtrlHandler( ctrlc_handler, TRUE );
-#elif defined(HAVE_FORKEXEC)
+
     signal(SIGCHLD, sigchld_handler);
     signal(SIGPIPE, SIG_IGN);
-#endif
+
 
     init_transport_registration();
 
@@ -804,12 +678,7 @@ int adb_main(int is_daemon)
     if (is_daemon)
     {
         // inform our parent that we are up and running.
-#ifdef HAVE_WIN32_PROC
-        DWORD  count;
-        WriteFile( GetStdHandle( STD_OUTPUT_HANDLE ), "OK\n", 3, &count, NULL );
-#elif defined(HAVE_FORKEXEC)
         fprintf(stderr, "OK\n");
-#endif
         start_logging();
     }
 

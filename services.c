@@ -27,10 +27,10 @@
 #include "file_sync_service.h"
 
 
-#  ifndef HAVE_WINSOCK
+
 #    include <netinet/in.h>
 #    include <netdb.h>
-#  endif
+
 
 typedef struct stinfo stinfo;
 
@@ -101,10 +101,6 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
 
 static int create_subprocess(const char *cmd, const char *arg0, const char *arg1)
 {
-#ifdef HAVE_WIN32_PROC
-	fprintf(stderr, "error: create_subprocess not implemented on Win32 (%s %s %s)\n", cmd, arg0, arg1);
-	return -1;
-#else /* !HAVE_WIN32_PROC */
     char *devname;
     int ptm;
     pid_t pid;
@@ -150,7 +146,6 @@ static int create_subprocess(const char *cmd, const char *arg0, const char *arg1
 
         return ptm;
     }
-#endif /* !HAVE_WIN32_PROC */
 }
 
 
@@ -174,7 +169,6 @@ int service_to_fd(const char *name)
             adb_mutex_unlock(&dns_lock);
 
         }
-#ifndef HAVE_WINSOCK   /* winsock doesn't implement unix domain sockets */
     } else if(!strncmp(name, "local:", 6)) {
         ret = socket_local_client(name + 6,
                 ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
@@ -187,7 +181,6 @@ int service_to_fd(const char *name)
     } else if(!strncmp(name, "localfilesystem:", 16)) {
         ret = socket_local_client(name + 16,
                 ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
-#endif
 
     } else if(!strncmp("dns:", name, 4)){
         char *n = strdup(name + 4);

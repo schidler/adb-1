@@ -18,14 +18,10 @@
 
 #include <stdio.h>
 
-#ifdef _WIN32
-#  define WIN32_LEAN_AND_MEAN
-#  include "windows.h"
-#  include "shlobj.h"
-#else
+
 #  include <unistd.h>
 #  include <sys/stat.h>
-#endif
+
 
 #include "sysdeps.h"
 #include "adb.h"
@@ -158,20 +154,9 @@ int build_path(char* buff, size_t len, const char* format, const char* home)
 /* fills buff with the path to the adb vendor id file. returns 0 if success */
 int get_adb_usb_ini(char* buff, size_t len)
 {
-#ifdef _WIN32
-    const char* home = getenv("ANDROID_SDK_HOME");
-    if (home != NULL) {
-        return build_path(buff, len, "%s\\%s\\%s", home);
-    } else {
-        char path[MAX_PATH];
-        SHGetFolderPath( NULL, CSIDL_PROFILE, NULL, 0, path);
-        return build_path(buff, len, "%s\\%s\\%s", path);
-    }
-#else
     const char* home = getenv("HOME");
     if (home == NULL)
         home = "/tmp";
 
     return build_path(buff, len, "%s/%s/%s", home);
-#endif
 }

@@ -211,12 +211,8 @@ static void fdevent_process()
 }
 
 #else /* USE_SELECT */
-
-#ifdef HAVE_WINSOCK
-#include <winsock2.h>
-#else
 #include <sys/select.h>
-#endif
+
 
 static fd_set read_fds;
 static fd_set write_fds;
@@ -420,9 +416,9 @@ void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg)
     fde->func = func;
     fde->arg = arg;
 
-#ifndef HAVE_WINSOCK
+
     fcntl(fd, F_SETFL, O_NONBLOCK);
-#endif
+
     fdevent_register(fde);
     dump_fde(fde, "connect");
     fdevent_connect(fde);
