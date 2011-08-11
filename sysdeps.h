@@ -252,11 +252,13 @@ static __inline__  int  adb_is_absolute_host_path( const char*  path )
 }
 
 #else /* !_WIN32 a.k.a. Unix */
-
+#define _XOPEN_SOURCE
+#define _GNU_SOURCE 
+#define SH_HISTORY
 #include "fdevent.h"
-#include <cutils/sockets.h>
-#include <cutils/properties.h>
-#include <cutils/misc.h>
+#include "sockets.h"  
+#include <cutils/properties.h>  //TODO
+#include <cutils/misc.h>      //TODO
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>

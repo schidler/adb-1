@@ -16,7 +16,7 @@
 
 #ifndef __ADB_H
 #define __ADB_H
-
+#define ADB_HOST 1
 #include <limits.h>
 
 #define MAX_PAYLOAD 4096
