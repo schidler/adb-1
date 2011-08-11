@@ -23,9 +23,9 @@
 #define  TRACE_TAG  TRACE_TRANSPORT
 #include "adb.h"
 
-#if ADB_HOST
+
 #include "usb_vendors.h"
-#endif
+
 
 /* XXX better define? */
 #ifdef __ppc__
@@ -122,14 +122,12 @@ void init_usb_transport(atransport *t, usb_handle *h, int state)
     t->type = kTransportUsb;
     t->usb = h;
 
-#if ADB_HOST
+
     HOST = 1;
-#else
-    HOST = 0;
-#endif
+
 }
 
-#if ADB_HOST
+
 int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol)
 {
     unsigned i;
@@ -146,4 +144,4 @@ int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_
 
     return 0;
 }
-#endif
+

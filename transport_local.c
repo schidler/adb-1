@@ -40,7 +40,7 @@ static inline void fix_endians(apacket *p)
 #define fix_endians(p) do {} while (0)
 #endif
 
-#if ADB_HOST
+
 /* we keep a list of opened transports, transport 0 is bound to 5555,
  * transport 1 to 5557, .. transport n to 5555 + n*2. the list is used
  * to detect when we're trying to connect twice to a given local transport
@@ -50,7 +50,7 @@ static inline void fix_endians(apacket *p)
 ADB_MUTEX_DEFINE( local_transports_lock );
 
 static atransport*  local_transports[ ADB_LOCAL_TRANSPORT_MAX ];
-#endif /* ADB_HOST */
+
 
 static int remote_read(apacket *p, atransport *t)
 {
@@ -61,10 +61,7 @@ static int remote_read(apacket *p, atransport *t)
 
     fix_endians(p);
 
-#if 0 && defined __ppc__
-    D("read remote packet: %04x arg0=%0x arg1=%0x data_length=%0x data_check=%0x magic=%0x\n",
-      p->msg.command, p->msg.arg0, p->msg.arg1, p->msg.data_length, p->msg.data_check, p->msg.magic);
-#endif
+
     if(check_header(p)) {
         D("bad header: terminated (data)\n");
         return -1;
@@ -89,10 +86,7 @@ static int remote_write(apacket *p, atransport *t)
 
     fix_endians(p);
 
-#if 0 && defined __ppc__
-    D("write remote packet: %04x arg0=%0x arg1=%0x data_length=%0x data_check=%0x magic=%0x\n",
-      p->msg.command, p->msg.arg0, p->msg.arg1, p->msg.data_length, p->msg.data_check, p->msg.magic);
-#endif
+
     if(writex(t->sfd, &p->msg, sizeof(amessage) + length)) {
         D("remote local: write terminated\n");
         return -1;
@@ -107,12 +101,12 @@ int  local_connect(int  port)
     char buf[64];
     int  fd = -1;
 
-#if ADB_HOST
+
     const char *host = getenv("ADBHOST");
     if (host) {
         fd = socket_network_client(host, port, SOCK_STREAM);
     }
-#endif
+
     if (fd < 0) {
         fd = socket_loopback_client(port, SOCK_STREAM);
     }
@@ -131,7 +125,7 @@ int  local_connect(int  port)
 
 static void *client_socket_thread(void *x)
 {
-#if ADB_HOST
+
     int  port  = ADB_LOCAL_TRANSPORT_PORT;
     int  count = ADB_LOCAL_TRANSPORT_MAX;
 
@@ -143,7 +137,7 @@ static void *client_socket_thread(void *x)
     for ( ; count > 0; count--, port += 2 ) {
         (void) local_connect(port);
     }
-#endif
+
     return 0;
 }
 
@@ -207,7 +201,7 @@ static void remote_kick(atransport *t)
     adb_shutdown(fd);
     adb_close(fd);
 
-#if ADB_HOST
+
     if(HOST) {
         int  nn;
         adb_mutex_lock( &local_transports_lock );
@@ -219,7 +213,7 @@ static void remote_kick(atransport *t)
         }
         adb_mutex_unlock( &local_transports_lock );
     }
-#endif
+
 }
 
 static void remote_close(atransport *t)
@@ -240,7 +234,7 @@ int init_socket_transport(atransport *t, int s, int port, int local)
     t->connection_state = CS_OFFLINE;
     t->type = kTransportLocal;
 
-#if ADB_HOST
+
     if (HOST && local) {
         adb_mutex_lock( &local_transports_lock );
         {
@@ -260,6 +254,6 @@ int init_socket_transport(atransport *t, int s, int port, int local)
         }
         adb_mutex_unlock( &local_transports_lock );
     }
-#endif
+
     return fail;
 }

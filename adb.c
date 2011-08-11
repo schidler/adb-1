@@ -28,14 +28,8 @@
 #include "sysdeps.h"
 #include "adb.h"
 
-#if !ADB_HOST
-#include <private/android_filesystem_config.h>
-#include <linux/capability.h>
-#include <linux/prctl.h>
-#else
-#include "usb_vendors.h"
-#endif
 
+#include "usb_vendors.h"
 
 int HOST = 0;
 
@@ -144,9 +138,6 @@ void put_apacket(apacket *p)
 void handle_online(void)
 {
     D("adb: online\n");
-#if !ADB_HOST
-    property_set("adb.connected","1");
-#endif
 }
 
 void handle_offline(atransport *t)
@@ -154,9 +145,6 @@ void handle_offline(atransport *t)
     D("adb: offline\n");
     //Close the associated usb
     run_transport_disconnects(t);
-#if !ADB_HOST
-    property_set("adb.connected","");
-#endif
 }
 
 #if TRACE_PACKETS
@@ -230,11 +218,11 @@ static void send_connect(atransport *t)
             HOST ? "host" : adb_device_banner);
     cp->msg.data_length = strlen((char*) cp->data) + 1;
     send_packet(cp, t);
-#if ADB_HOST
+
         /* XXX why sleep here? */
     // allow the device some time to respond to the connect message
     adb_sleep_ms(1000);
-#endif
+
 }
 
 static char *connection_state_name(atransport *t)
@@ -656,43 +644,6 @@ void start_logging(void)
 #endif
 }
 
-#if !ADB_HOST
-void start_device_log(void)
-{
-    int fd;
-    char    path[PATH_MAX];
-    struct tm now;
-    time_t t;
-    char value[PROPERTY_VALUE_MAX];
-
-    // read the trace mask from persistent property persist.adb.trace_mask
-    // give up if the property is not set or cannot be parsed
-    property_get("persist.adb.trace_mask", value, "");
-    if (sscanf(value, "%x", &adb_trace_mask) != 1)
-        return;
-
-    adb_mkdir("/data/adb", 0775);
-    tzset();
-    time(&t);
-    localtime_r(&t, &now);
-    strftime(path, sizeof(path),
-                "/data/adb/adb-%Y-%m-%d-%H-%M-%S.txt",
-                &now);
-    fd = unix_open(path, O_WRONLY | O_CREAT | O_TRUNC, 0640);
-    if (fd < 0)
-        return;
-
-    // redirect stdout and stderr to the log file
-    dup2(fd, 1);
-    dup2(fd, 2);
-    fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
-
-    fd = unix_open("/dev/null", O_RDONLY);
-    dup2(fd, 0);
-}
-#endif
-
-#if ADB_HOST
 int launch_server()
 {
 #ifdef HAVE_WIN32_PROC
@@ -826,15 +777,9 @@ int launch_server()
 #endif
     return 0;
 }
-#endif
 
 int adb_main(int is_daemon)
 {
-#if !ADB_HOST
-    int secure = 0;
-    int port;
-    char value[PROPERTY_VALUE_MAX];
-#endif
 
     atexit(adb_cleanup);
 #ifdef HAVE_WIN32_PROC
@@ -847,7 +792,7 @@ int adb_main(int is_daemon)
     init_transport_registration();
 
 
-#if ADB_HOST
+
     HOST = 1;
     usb_vendors_init();
     usb_init();
@@ -856,87 +801,6 @@ int adb_main(int is_daemon)
     if(install_listener("tcp:5037", "*smartsocket*", NULL)) {
         exit(1);
     }
-#else
-    /* run adbd in secure mode if ro.secure is set and
-    ** we are not in the emulator
-    */
-    property_get("ro.kernel.qemu", value, "");
-    if (strcmp(value, "1") != 0) {
-        property_get("ro.secure", value, "");
-        if (strcmp(value, "1") == 0) {
-            // don't run as root if ro.secure is set...
-            secure = 1;
-
-            // ... except we allow running as root in userdebug builds if the 
-            // service.adb.root property has been set by the "adb root" command
-            property_get("ro.debuggable", value, "");
-            if (strcmp(value, "1") == 0) {
-                property_get("service.adb.root", value, "");
-                if (strcmp(value, "1") == 0) {
-                    secure = 0;
-                }
-            }
-        }
-    }
-
-    /* don't listen on port 5037 if we are running in secure mode */
-    /* don't run as root if we are running in secure mode */
-    if (secure) {
-        struct __user_cap_header_struct header;
-        struct __user_cap_data_struct cap;
-
-        prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
-
-        /* add extra groups:
-        ** AID_ADB to access the USB driver
-        ** AID_LOG to read system logs (adb logcat)
-        ** AID_INPUT to diagnose input issues (getevent)
-        ** AID_INET to diagnose network issues (netcfg, ping)
-        ** AID_GRAPHICS to access the frame buffer
-        ** AID_NET_BT and AID_NET_BT_ADMIN to diagnose bluetooth (hcidump)
-        ** AID_SDCARD_RW to allow writing to the SD card
-        ** AID_MOUNT to allow unmounting the SD card before rebooting
-        */
-        gid_t groups[] = { AID_ADB, AID_LOG, AID_INPUT, AID_INET, AID_GRAPHICS,
-                           AID_NET_BT, AID_NET_BT_ADMIN, AID_SDCARD_RW, AID_MOUNT };
-        setgroups(sizeof(groups)/sizeof(groups[0]), groups);
-
-        /* then switch user and group to "shell" */
-        setgid(AID_SHELL);
-        setuid(AID_SHELL);
-
-        /* set CAP_SYS_BOOT capability, so "adb reboot" will succeed */
-        header.version = _LINUX_CAPABILITY_VERSION;
-        header.pid = 0;
-        cap.effective = cap.permitted = (1 << CAP_SYS_BOOT);
-        cap.inheritable = 0;
-        capset(&header, &cap);
-
-        D("Local port 5037 disabled\n");
-    } else {
-        if(install_listener("tcp:5037", "*smartsocket*", NULL)) {
-            exit(1);
-        }
-    }
-
-        /* for the device, start the usb transport if the
-        ** android usb device exists and "service.adb.tcp"
-        ** is not set, otherwise start the network transport.
-        */
-    property_get("service.adb.tcp.port", value, "0");
-    if (sscanf(value, "%d", &port) == 1 && port > 0) {
-        // listen on TCP port specified by service.adb.tcp.port property
-        local_init(port);
-    } else if (access("/dev/android_adb", F_OK) == 0) {
-        // listen on USB
-        usb_init();
-    } else {
-        // listen on default port
-        local_init(ADB_LOCAL_TRANSPORT_PORT);
-    }
-    init_jdwp();
-#endif
-
     if (is_daemon)
     {
         // inform our parent that we are up and running.
@@ -969,7 +833,6 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         exit(0);
     }
 
-#if ADB_HOST
     // "transport:" is used for switching transport with a specified serial number
     // "transport-usb:" is used for switching transport to the only USB transport
     // "transport-local:" is used for switching transport to the only local transport
@@ -1099,7 +962,6 @@ done:
         /* we don't even need to send a reply */
         return 0;
     }
-#endif // ADB_HOST
 
     if(!strncmp(service,"forward:",8) || !strncmp(service,"killforward:",12)) {
         char *local, *remote, *err;
@@ -1156,23 +1018,11 @@ done:
     return -1;
 }
 
-#if !ADB_HOST
-int recovery_mode = 0;
-#endif
 
 int main(int argc, char **argv)
 {
     adb_trace_init();
-#if ADB_HOST
+
     adb_sysdeps_init();
     return adb_commandline(argc - 1, argv + 1);
-#else
-    if((argc > 1) && (!strcmp(argv[1],"recovery"))) {
-        adb_device_banner = "recovery";
-        recovery_mode = 1;
-    }
-
-    start_device_log();
-    return adb_main(0);
-#endif
 }

@@ -339,7 +339,7 @@ static int transport_registration_recv = -1;
 static fdevent transport_registration_fde;
 
 
-#if ADB_HOST
+
 static int list_transports_msg(char*  buffer, size_t  bufferlen)
 {
     char  head[5];
@@ -480,12 +480,6 @@ void  update_transports(void)
         tracker = next;
     }
 }
-#else
-void  update_transports(void)
-{
-    // nothing to do on the device side
-}
-#endif // ADB_HOST
 
 typedef struct tmsg tmsg;
 struct tmsg
@@ -792,7 +786,7 @@ retry:
     return result;
 }
 
-#if ADB_HOST
+
 static const char *statename(atransport *t)
 {
     switch(t->connection_state){
@@ -847,7 +841,7 @@ void close_usb_devices()
     }
     adb_mutex_unlock(&transport_lock);
 }
-#endif // ADB_HOST
+
 
 void register_socket_transport(int s, const char *serial, int port, int local)
 {
@@ -864,7 +858,7 @@ void register_socket_transport(int s, const char *serial, int port, int local)
     register_transport(t);
 }
 
-#if ADB_HOST
+
 atransport *find_transport(const char *serial)
 {
     atransport *t;
@@ -894,7 +888,7 @@ void unregister_transport(atransport *t)
     transport_unref(t);
 }
 
-#endif
+
 
 void register_usb_transport(usb_handle *usb, const char *serial, unsigned writeable)
 {

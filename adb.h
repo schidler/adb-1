@@ -16,7 +16,7 @@
 
 #ifndef __ADB_H
 #define __ADB_H
-#define ADB_HOST 1
+
 #include <limits.h>
 
 #define MAX_PAYLOAD 4096
@@ -282,23 +282,13 @@ void unregister_usb_transport(usb_handle *usb);
 atransport *find_transport(const char *serial);
 
 int service_to_fd(const char *name);
-#if ADB_HOST
+
 asocket *host_service_to_socket(const char*  name, const char *serial);
-#endif
 
-#if !ADB_HOST
-int       init_jdwp(void);
-asocket*  create_jdwp_service_socket();
-asocket*  create_jdwp_tracker_service_socket();
-int       create_jdwp_connection_fd(int  jdwp_pid);
-#endif
 
-#if !ADB_HOST
-void framebuffer_service(int fd, void *cookie);
-void log_service(int fd, void *cookie);
-void remount_service(int fd, void *cookie);
-char * get_log_file_path(const char * log_name);
-#endif
+
+
+
 
 /* packet allocator */
 apacket *get_apacket(void);
@@ -378,9 +368,9 @@ int usb_close(usb_handle *h);
 void usb_kick(usb_handle *h);
 
 /* used for USB device detection */
-#if ADB_HOST
+
 int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol);
-#endif
+
 
 unsigned host_to_le32(unsigned n);
 int adb_commandline(int argc, char **argv);

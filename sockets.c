@@ -385,14 +385,6 @@ asocket *create_local_service_socket(const char *name)
     asocket *s;
     int fd;
 
-#if !ADB_HOST
-    if (!strcmp(name,"jdwp")) {
-        return create_jdwp_service_socket();
-    }
-    if (!strcmp(name,"track-jdwp")) {
-        return create_jdwp_tracker_service_socket();
-    }
-#endif
     fd = service_to_fd(name);
     if(fd < 0) return 0;
 
@@ -401,7 +393,7 @@ asocket *create_local_service_socket(const char *name)
     return s;
 }
 
-#if ADB_HOST
+
 static asocket *create_host_service_socket(const char *name, const char* serial)
 {
     asocket *s;
@@ -415,7 +407,7 @@ static asocket *create_host_service_socket(const char *name, const char* serial)
 
     return s;
 }
-#endif /* ADB_HOST */
+
 
 /* a Remote socket is used to send/receive data to/from a given transport object
 ** it needs to be closed when the transport is forcibly destroyed by the user
@@ -569,11 +561,11 @@ unsigned unhex(unsigned char *s, int len)
 static int smart_socket_enqueue(asocket *s, apacket *p)
 {
     unsigned len;
-#if ADB_HOST
+
     char *service = NULL;
     char* serial = NULL;
     transport_type ttype = kTransportAny;
-#endif
+
 
     D("SS(%d): enqueue %d\n", s->id, p->len);
 
@@ -615,7 +607,7 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
 
     D("SS(%d): '%s'\n", s->id, (char*) (p->data + 4));
 
-#if ADB_HOST
+
     service = (char *)p->data + 4;
     if(!strncmp(service, "host-serial:", strlen("host-serial:"))) {
         char* serial_end;
@@ -692,18 +684,6 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
         s2->ready(s2);
         return 0;
     }
-#else /* !ADB_HOST */
-    if (s->transport == NULL) {
-        char* error_string = "unknown failure";
-        s->transport = acquire_one_transport (CS_ANY,
-                kTransportAny, NULL, &error_string);
-
-        if (s->transport == NULL) {
-            sendfailmsg(s->peer->fd, error_string);
-            goto fail;
-        }
-    }
-#endif
 
     if(!(s->transport) || (s->transport->connection_state == CS_OFFLINE)) {
            /* if there's no remote we fail the connection
