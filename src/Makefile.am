@@ -1,4 +1,6 @@
 bin_PROGRAMS = adb
+adb_LDFLAGS = -lpthread -lz
+adb_CFLAGS = -DHAVE_TERMIO_H -DSH_HISTORY
 adb_SOURCES= adb.c \
              services.c \
              transport.c \
@@ -22,5 +24,3 @@ adb_SOURCES= adb.c \
 	     zipfile.c \
 	     get_my_path_linux.c \
 	     sockets.c
-adb_LDFLAGS = -lpthread -lz
-
