@@ -21,9 +21,9 @@
 #define _ADB_SYSDEPS_H
 
 #include "fdevent.h"
-#include "sockets.h"  
-#include <cutils/properties.h>  //TODO
-#include <cutils/misc.h>      //TODO
+#include "cutils_sockets.h"  
+//#include <cutils/properties.h>  //TODO
+//#include <cutils/misc.h>      //TODO
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
