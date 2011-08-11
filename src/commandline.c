@@ -334,14 +334,10 @@ static void status_window(transport_type ttype, const char* serial)
     char *laststate = 0;
 
         /* silence stderr */
-#ifdef _WIN32
-    /* XXX: TODO */
-#else
     int  fd;
     fd = unix_open("/dev/null", O_WRONLY);
     dup2(fd, 2);
     adb_close(fd);
-#endif
 
     format_host_command(command, sizeof command, "get-state", ttype, serial);
 
@@ -418,10 +414,6 @@ dupAndQuote(const char *s)
  */
 int ppp(int argc, char **argv)
 {
-#ifdef HAVE_WIN32_PROC
-    fprintf(stderr, "error: adb %s not implemented on Win32\n", argv[0]);
-    return -1;
-#else
     char *adb_service_name;
     pid_t pid;
     int fd;
@@ -481,7 +473,6 @@ int ppp(int argc, char **argv)
         adb_close(fd);
         return 0;
     }
-#endif /* !HAVE_WIN32_PROC */
 }
 
 static int send_shellcommand(transport_type transport, char* serial, char* buf)
@@ -1140,13 +1131,6 @@ static int do_cmd(transport_type ttype, char* serial, char *cmd, ...)
     while((argv[argc] = va_arg(ap, char*)) != 0) argc++;
     va_end(ap);
 
-#if 0
-    int n;
-    fprintf(stderr,"argc = %d\n",argc);
-    for(n = 0; n < argc; n++) {
-        fprintf(stderr,"argv[%d] = \"%s\"\n", n, argv[n]);
-    }
-#endif
 
     return adb_commandline(argc, argv);
 }
