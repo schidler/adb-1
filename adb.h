@@ -18,7 +18,7 @@
 #define __ADB_H
 
 #include <limits.h>
-
+#include "fdevent.h"
 #define MAX_PAYLOAD 4096
 
 #define A_SYNC 0x434e5953
@@ -93,7 +93,7 @@ struct asocket {
         ** us to our fd event system.  For remote asockets
         ** these fields are not used.
         */
-    fdevent fde;
+    struct fdevent fde;
     int fd;
 
         /* queue of apackets waiting to be written
@@ -170,7 +170,7 @@ struct atransport
 
     int fd;
     int transport_socket;
-    fdevent transport_fde;
+    struct fdevent transport_fde;
     int ref_count;
     unsigned sync_token;
     int connection_state;
@@ -204,7 +204,7 @@ struct alistener
     alistener *next;
     alistener *prev;
 
-    fdevent fde;
+    struct fdevent fde;
     int fd;
 
     const char *local_name;
