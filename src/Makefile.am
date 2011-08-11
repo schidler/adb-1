@@ -1,6 +1,6 @@
 bin_PROGRAMS = adb
-adb_LDFLAGS = -lpthread -lz
-adb_CFLAGS = -DHAVE_TERMIO_H -DSH_HISTORY
+AM_CPPFLAGS = -DHAVE_TERMIO_H -DSH_HISTORY
+AM_LDFLAGS = -lpthread -lz
 adb_SOURCES= adb.c \
              services.c \
              transport.c \
