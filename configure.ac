@@ -9,7 +9,7 @@ AC_PROG_RANLIB
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AC_PROG_CC
 # Checks for programs.
-AC_PROG_CC
+AC_PROG_CXX
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lpthread':
@@ -40,6 +40,7 @@ AC_CONFIG_FILES([Makefile
                  lib/Makefile
                  lib/libcutils/Makefile
                  lib/libzipfile/Makefile
+                 lib/libutils/Makefile
                  src/Makefile
                  src/adb/Makefile
                  src/fastboot/Makefile])

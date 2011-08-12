@@ -1,1 +1,1 @@
-SUBDIRS = libcutils  libzipfile
+SUBDIRS = libcutils  libzipfile libutils
