@@ -1,4 +1,4 @@
-/* libs/cutils/socket_loopback_server.c
+/* libs/cutils/socket_network_client.c
 **
 ** Copyright 2006, The Android Open Source Project
 **
@@ -15,7 +15,7 @@
 ** limitations under the License.
 */
 
-#include "cutils_sockets.h"
+#include <cutils/sockets.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -23,49 +23,43 @@
 #include <errno.h>
 #include <stddef.h>
 
-#define LISTEN_BACKLOG 4
-
 
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 
-/* open listen() port on loopback interface */
-int socket_loopback_server(int port, int type)
+
+/* Connect to port on the IP interface. type is
+ * SOCK_STREAM or SOCK_DGRAM. 
+ * return is a file descriptor or -1 on error
+ */
+int socket_network_client(const char *host, int port, int type)
 {
+    struct hostent *hp;
     struct sockaddr_in addr;
-    size_t alen;
-    int s, n;
+    socklen_t alen;
+    int s;
 
+    hp = gethostbyname(host);
+    if(hp == 0) return -1;
+    
     memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
+    addr.sin_family = hp->h_addrtype;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
 
-    s = socket(AF_INET, type, 0);
+    s = socket(hp->h_addrtype, type, 0);
     if(s < 0) return -1;
 
-    n = 1;
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(n));
-
-    if(bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+    if(connect(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         close(s);
         return -1;
     }
 
-    if (type == SOCK_STREAM) {
-        int ret;
-
-        ret = listen(s, LISTEN_BACKLOG);
-
-        if (ret < 0) {
-            close(s);
-            return -1; 
-        }
-    }
-
     return s;
+
 }
 

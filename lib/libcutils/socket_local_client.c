@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cutils_sockets.h"
+#include <cutils/sockets.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -154,3 +154,4 @@ int socket_local_client(const char *name, int namespaceId, int type)
 
     return s;
 }
+

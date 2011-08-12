@@ -3,8 +3,9 @@
 
 AC_PREREQ(2.61)
 AC_INIT(adb, 2.2,zhangn1985@gmail.com)
-AC_CONFIG_SRCDIR([src/adb.c])
+AC_CONFIG_SRCDIR([src/adb/adb.c])
 AC_CONFIG_HEADER([config.h])
+AC_PROG_RANLIB
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AC_PROG_CC
 # Checks for programs.
@@ -42,6 +43,6 @@ AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([atexit dup2 getcwd gethostbyname gettimeofday memset mkdir select socket strchr strdup strerror strpbrk strrchr strtol strtoul])
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile  lib/Makefile lib/libcutils/Makefile lib/libzipfile/Makefile src/Makefile src/adb/Makefile])
 
 AC_OUTPUT

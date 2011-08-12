@@ -1,4 +1,4 @@
-#include "zipfile.h"
+#include <zipfile/zipfile.h>
 
 #include "private.h"
 #include <stdlib.h>
