@@ -1,1 +1,1 @@
-SUBDIRS = adb
+SUBDIRS = adb fastboot
