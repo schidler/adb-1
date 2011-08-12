@@ -1,6 +1,8 @@
 bin_PROGRAMS = adb
 AM_CPPFLAGS = -DHAVE_TERMIO_H -I../../include/
-AM_LDFLAGS = -lpthread -L../../lib/libcutils.a -L../../libzipfile.a
+AM_LDFLAGS = -lpthread -lz 
+adb_DEPENDENCIES = ../../lib/libcutils/libcutils.a ../../lib/libzipfile/libzipfile.a
+adb_LDADD = ../../lib/libcutils/libcutils.a ../../lib/libzipfile/libzipfile.a
 adb_SOURCES= adb.c \
              services.c \
              transport.c \
