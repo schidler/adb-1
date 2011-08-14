@@ -41,6 +41,7 @@ AC_CONFIG_FILES([Makefile
                  lib/libcutils/Makefile
                  lib/libzipfile/Makefile
                  lib/libutils/Makefile
+                 lib/libhost/Makefile
                  src/Makefile
                  src/adb/Makefile
                  src/fastboot/Makefile])
