@@ -1,1 +1,1 @@
-SUBDIRS = libcutils  libzipfile libutils libhost
+SUBDIRS = libcutils  libzipfile libutils libhost liblog
