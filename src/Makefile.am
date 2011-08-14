@@ -1,1 +1,1 @@
-SUBDIRS = adb fastboot
+SUBDIRS = adb fastboot aapt

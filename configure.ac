@@ -16,7 +16,7 @@ AC_PROG_CXX
 AC_CHECK_LIB([pthread], [pthread_create])
 # FIXME: Replace `main' with a function in `-lz':
 AC_CHECK_LIB([z], [inflateInit2])
-
+PKG_CHECK_MODULES([LIBPNG],[libpng])
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/socket.h sys/time.h termios.h unistd.h])
 
@@ -44,5 +44,6 @@ AC_CONFIG_FILES([Makefile
                  lib/libhost/Makefile
                  src/Makefile
                  src/adb/Makefile
-                 src/fastboot/Makefile])
+                 src/fastboot/Makefile
+                 src/aapt/Makefile])
 AC_OUTPUT
