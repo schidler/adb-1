@@ -983,8 +983,9 @@ top:
     /* do_sync_*() commands */
 
     if(!strcmp(argv[0], "ls")) {
-        if(argc != 2) return usage();
-        return do_sync_ls(argv[1]);
+        if(argc == 2) 
+        	return do_sync_ls(argv[1]); 
+        //else shell ls
     }
 
     if(!strcmp(argv[0], "push")) {
@@ -1104,7 +1105,45 @@ top:
         version(stdout);
         return 0;
     }
+    /* take argv as command in device */
+    {
+        int r;
+        int fd;    
+        snprintf(buf, sizeof buf, "shell:%s",argv[0]);
+        argc -= 1;
+        argv += 1;
+        while(argc-- > 0) {
+            strcat(buf, " ");
 
+            /* quote empty strings and strings with spaces */
+            quote = (**argv == 0 || strchr(*argv, ' '));
+            if (quote)
+                strcat(buf, "\"");
+            strcat(buf, *argv++);
+            if (quote)
+                strcat(buf, "\"");
+        }
+
+        for(;;) {
+            fd = adb_connect(buf);
+            if(fd >= 0) {
+                read_and_dump(fd);
+                adb_close(fd);
+                r = 0;
+            } else {
+                fprintf(stderr,"error: %s\n", adb_error());
+                r = -1;
+            }
+
+            if(persist) {
+                fprintf(stderr,"\n- waiting for device -\n");
+                adb_sleep_ms(1000);
+                do_cmd(ttype, serial, "wait-for-device", 0);
+            } else {
+                return r;
+            }
+        }        	
+    }
     usage();
     return 1;
 }
