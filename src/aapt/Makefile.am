@@ -14,6 +14,6 @@ aapt_SOURCES = \
     SourcePos.cpp \
     ZipEntry.cpp \
     ZipFile.cpp
-AM_CXXFLAGS = -DHAVE_SYS_UIO_H -I../../include ${LIBPNG_CFLAGS}
-AM_LDFLAGS = -lz -lpthread -lpng14 -lexpat
-aapt_LDADD = ../../lib/libutils/libutils.a ../../lib/libcutils/libcutils.a ../../lib/liblog/liblog.a ../../lib/libhost/libhost.a
+AM_CXXFLAGS = -DHAVE_SYS_UIO_H -I../../include @LIBPNG_CFLAGS@
+AM_LDFLAGS = -lz -lpthread  -lexpat 
+aapt_LDADD = ../../lib/libutils/libutils.a ../../lib/libcutils/libcutils.a ../../lib/liblog/liblog.a ../../lib/libhost/libhost.a @LIBPNG_LIBS@
