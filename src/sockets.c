@@ -352,8 +352,9 @@ static void local_socket_event_func(int fd, unsigned ev, void *_s)
                 fdevent_del(&s->fde, FDE_READ);
             }
         }
-
-        if(is_eof) {
+        /* Don't allow a forced eof if data is still there */
+        if((s->fde.force_eof && !r) || is_eof) {
+            D(" closing because is_eof=%d r=%d s->fde.force_eof=%d\n", is_eof, r, s->fde.force_eof);
             s->close(s);
         }
     }
@@ -372,11 +373,11 @@ asocket *create_local_socket(int fd)
 {
     asocket *s = calloc(1, sizeof(asocket));
     if (s == NULL) fatal("cannot allocate socket");
-    install_local_socket(s);
     s->fd = fd;
     s->enqueue = local_socket_enqueue;
     s->ready = local_socket_ready;
     s->close = local_socket_close;
+    install_local_socket(s);
 
     fdevent_install(&s->fde, fd, local_socket_event_func, s);
 /*    fdevent_add(&s->fde, FDE_ERROR); */
@@ -424,7 +425,8 @@ typedef struct aremotesocket {
 
 static int remote_socket_enqueue(asocket *s, apacket *p)
 {
-    D("Calling remote_socket_enqueue\n");
+    D("entered remote_socket_enqueue RS(%d) WRITE fd=%d peer.fd=%d\n",
+      s->id, s->fd, s->peer->fd);
     p->msg.command = A_WRTE;
     p->msg.arg0 = s->peer->id;
     p->msg.arg1 = s->id;
@@ -435,7 +437,8 @@ static int remote_socket_enqueue(asocket *s, apacket *p)
 
 static void remote_socket_ready(asocket *s)
 {
-    D("Calling remote_socket_ready\n");
+    D("entered remote_socket_ready RS(%d) OKAY fd=%d peer.fd=%d\n",
+      s->id, s->fd, s->peer->fd);
     apacket *p = get_apacket();
     p->msg.command = A_OKAY;
     p->msg.arg0 = s->peer->id;

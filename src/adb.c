@@ -31,6 +31,10 @@
 
 #include "usb_vendors.h"
 
+#if ADB_TRACE
+ADB_MUTEX_DEFINE( D_lock );
+#endif
+
 int HOST = 0;
 
 static const char *adb_device_banner = "device";
@@ -84,6 +88,7 @@ void  adb_trace_init(void)
         { "sysdeps", TRACE_SYSDEPS },
         { "transport", TRACE_TRANSPORT },
         { "jdwp", TRACE_JDWP },
+        { "services", TRACE_SERVICES },
         { NULL, 0 }
     };
 
@@ -593,6 +598,7 @@ void start_logging(void)
 
     fd = unix_open("/dev/null", O_RDONLY);
     dup2(fd, 0);
+    adb_close(fd);
 
     fd = unix_open("/tmp/adb.log", O_WRONLY | O_CREAT | O_APPEND, 0640);
     if(fd < 0) {
@@ -600,6 +606,7 @@ void start_logging(void)
     }
     dup2(fd, 1);
     dup2(fd, 2);
+    adb_close(fd);
     fprintf(stderr,"--- adb starting (pid %d) ---\n", getpid());
 
 }
@@ -641,9 +648,10 @@ int launch_server(int server_port)
         // wait for the "OK\n" message
         adb_close(fd[1]);
         int ret = adb_read(fd[0], temp, 3);
+        int saved_errno = errno;
         adb_close(fd[0]);
         if (ret < 0) {
-            fprintf(stderr, "could not read ok from ADB Server, errno = %d\n", errno);
+            fprintf(stderr, "could not read ok from ADB Server, errno = %d\n", saved_errno);
             return -1;
         }
         if (ret != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {

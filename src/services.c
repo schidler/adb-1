@@ -22,7 +22,7 @@
 
 #include "sysdeps.h"
 
-#define  TRACE_TAG  TRACE_ADB
+#define  TRACE_TAG  TRACE_SERVICES
 #include "adb.h"
 #include "file_sync_service.h"
 
@@ -99,57 +99,6 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
     return s[0];
 }
 
-static int create_subprocess(const char *cmd, const char *arg0, const char *arg1)
-{
-    char *devname;
-    int ptm;
-    pid_t pid;
-
-    ptm = unix_open("/dev/ptmx", O_RDWR); // | O_NOCTTY);
-    if(ptm < 0){
-        printf("[ cannot open /dev/ptmx - %s ]\n",strerror(errno));
-        return -1;
-    }
-    fcntl(ptm, F_SETFD, FD_CLOEXEC);
-
-    if(grantpt(ptm) || unlockpt(ptm) ||
-       ((devname = (char*) ptsname(ptm)) == 0)){
-        printf("[ trouble with /dev/ptmx - %s ]\n", strerror(errno));
-        return -1;
-    }
-
-    pid = fork();
-    if(pid < 0) {
-        printf("- fork failed: %s -\n", strerror(errno));
-        return -1;
-    }
-
-    if(pid == 0){
-        int pts;
-
-        setsid();
-
-        pts = unix_open(devname, O_RDWR);
-        if(pts < 0) exit(-1);
-
-        dup2(pts, 0);
-        dup2(pts, 1);
-        dup2(pts, 2);
-
-        adb_close(pts);
-        adb_close(ptm);
-
-        execl(cmd, cmd, arg0, arg1, NULL);
-        fprintf(stderr, "- exec '%s' failed: %s (%d) -\n",
-                cmd, strerror(errno), errno);
-        exit(-1);
-    } else {
-
-        return ptm;
-    }
-}
-
-
 #define SHELL_COMMAND "/bin/sh"
 
 int service_to_fd(const char *name)
@@ -187,15 +136,6 @@ int service_to_fd(const char *name)
         char *n = strdup(name + 4);
         if(n == 0) return -1;
         ret = create_service_thread(dns_service, n);
-
-    } else if(!HOST && !strncmp(name, "shell:", 6)) {
-        if(name[6]) {
-            ret = create_subprocess(SHELL_COMMAND, "-c", name + 6);
-        } else {
-            ret = create_subprocess(SHELL_COMMAND, "-", 0);
-        }
-
-
     }
     if (ret >= 0) {
         close_on_exec(ret);

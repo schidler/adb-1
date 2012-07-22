@@ -93,11 +93,32 @@
 #define VENDOR_ID_COMPAL        0x1219
 // T & A Mobile Phones' USB Vendor ID
 #define VENDOR_ID_T_AND_A       0x1BBB
+// LenovoMobile's USB Vendor ID
+#define VENDOR_ID_LENOVOMOBILE  0x2006
 // Lenovo's USB Vendor ID
-#define VENDOR_ID_LENOVO        0x2006
+#define VENDOR_ID_LENOVO        0x17EF
 // Vizio's USB Vendor ID
 #define VENDOR_ID_VIZIO         0xE040
-
+// K-Touch's USB Vendor ID
+#define VENDOR_ID_K_TOUCH       0x24E3
+// Pegatron's USB Vendor ID
+#define VENDOR_ID_PEGATRON      0x1D4D
+// Archos's USB Vendor ID
+#define VENDOR_ID_ARCHOS        0x0E79
+// Positivo's USB Vendor ID
+#define VENDOR_ID_POSITIVO      0x1662
+// Fujitsu's USB Vendor ID
+#define VENDOR_ID_FUJITSU       0x04C5
+// Lumigon's USB Vendor ID
+#define VENDOR_ID_LUMIGON       0x25E3
+//Intel's USB Vendor ID
+#define VENDOR_ID_INTEL         0x8087
+// Quanta's USB Vendor ID
+#define VENDOR_ID_QUANTA        0x0408
+// INQ Mobile's USB Vendor ID
+#define VENDOR_ID_INQ_MOBILE    0x2314
+// Sony's USB Vendor ID
+#define VENDOR_ID_SONY          0x054C
 
 /** built-in vendor list */
 int builtInVendorIds[] = {
@@ -132,8 +153,19 @@ int builtInVendorIds[] = {
     VENDOR_ID_IRIVER,
     VENDOR_ID_COMPAL,
     VENDOR_ID_T_AND_A,
+    VENDOR_ID_LENOVOMOBILE,
     VENDOR_ID_LENOVO,
     VENDOR_ID_VIZIO,
+    VENDOR_ID_K_TOUCH,
+    VENDOR_ID_PEGATRON,
+    VENDOR_ID_ARCHOS,
+    VENDOR_ID_POSITIVO,
+    VENDOR_ID_FUJITSU,
+    VENDOR_ID_LUMIGON,
+    VENDOR_ID_INTEL,
+    VENDOR_ID_QUANTA,
+    VENDOR_ID_INQ_MOBILE,
+    VENDOR_ID_SONY,
 };
 
 #define BUILT_IN_VENDOR_COUNT    (sizeof(builtInVendorIds)/sizeof(builtInVendorIds[0]))

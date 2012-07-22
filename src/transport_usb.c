@@ -142,4 +142,3 @@ int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_
 
     return 0;
 }
-

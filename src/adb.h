@@ -18,7 +18,9 @@
 #define __ADB_H
 
 #include <limits.h>
-#include "fdevent.h"
+
+#include "transport.h"  /* readx(), writex() */
+
 #define MAX_PAYLOAD 4096
 
 #define A_SYNC 0x434e5953
@@ -33,7 +35,7 @@
 #define ADB_VERSION_MAJOR 1         // Used for help/version information
 #define ADB_VERSION_MINOR 0         // Used for help/version information
 
-#define ADB_SERVER_VERSION    26    // Increment this when we want to force users to start a new adb server
+#define ADB_SERVER_VERSION    29    // Increment this when we want to force users to start a new adb server
 
 typedef struct amessage amessage;
 typedef struct apacket apacket;
@@ -93,7 +95,7 @@ struct asocket {
         ** us to our fd event system.  For remote asockets
         ** these fields are not used.
         */
-    struct fdevent fde;
+    fdevent fde;
     int fd;
 
         /* queue of apackets waiting to be written
@@ -170,7 +172,7 @@ struct atransport
 
     int fd;
     int transport_socket;
-    struct fdevent transport_fde;
+    fdevent transport_fde;
     int ref_count;
     unsigned sync_token;
     int connection_state;
@@ -205,7 +207,7 @@ struct alistener
     alistener *next;
     alistener *prev;
 
-    struct fdevent fde;
+    fdevent fde;
     int fd;
 
     const char *local_name;
@@ -273,7 +275,7 @@ void close_usb_devices();
 /* cause new transports to be init'd and added to the list */
 void register_socket_transport(int s, const char *serial, int port, int local);
 
-/* this should only be used for the "adb disconnect" command */
+/* these should only be used for the "adb disconnect" command */
 void unregister_transport(atransport *t);
 void unregister_all_tcp_transports();
 
@@ -283,6 +285,9 @@ void register_usb_transport(usb_handle *h, const char *serial, unsigned writeabl
 void unregister_usb_transport(usb_handle *usb);
 
 atransport *find_transport(const char *serial);
+
+atransport* find_emulator_transport_by_adb_port(int adb_port);
+
 
 int service_to_fd(const char *name);
 asocket *host_service_to_socket(const char*  name, const char *serial);
@@ -295,13 +300,6 @@ void put_apacket(apacket *p);
 int check_header(apacket *p);
 int check_data(apacket *p);
 
-/* convenience wrappers around read/write that will retry on
-** EINTR and/or short read/write.  Returns 0 on success, -1
-** on error or EOF.
-*/
-int readx(int fd, void *ptr, size_t len);
-int writex(int fd, const void *ptr, size_t len);
-
 /* define ADB_TRACE to 1 to enable tracing support, or 0 to disable it */
 
 #define  ADB_TRACE    1
@@ -311,33 +309,56 @@ int writex(int fd, const void *ptr, size_t len);
  * the adb_trace_init() function implemented in adb.c
  */
 typedef enum {
-    TRACE_ADB = 0,
+    TRACE_ADB = 0,   /* 0x001 */
     TRACE_SOCKETS,
     TRACE_PACKETS,
     TRACE_TRANSPORT,
-    TRACE_RWX,
+    TRACE_RWX,       /* 0x010 */
     TRACE_USB,
     TRACE_SYNC,
     TRACE_SYSDEPS,
-    TRACE_JDWP,
+    TRACE_JDWP,      /* 0x100 */
+    TRACE_SERVICES,
 } AdbTrace;
 
 #if ADB_TRACE
 
-  int     adb_trace_mask;
-
+  extern int     adb_trace_mask;
+  extern unsigned char    adb_trace_output_count;
   void    adb_trace_init(void);
 
 #  define ADB_TRACING  ((adb_trace_mask & (1 << TRACE_TAG)) != 0)
 
   /* you must define TRACE_TAG before using this macro */
-  #define  D(...)                                      \
+#  define  D(...)                                      \
         do {                                           \
-            if (ADB_TRACING)                           \
+            if (ADB_TRACING) {                         \
+                int save_errno = errno;                \
+                adb_mutex_lock(&D_lock);               \
+                fprintf(stderr, "%s::%s():",           \
+                        __FILE__, __FUNCTION__);       \
+                errno = save_errno;                    \
                 fprintf(stderr, __VA_ARGS__ );         \
+                fflush(stderr);                        \
+                adb_mutex_unlock(&D_lock);             \
+                errno = save_errno;                    \
+           }                                           \
+        } while (0)
+#  define  DR(...)                                     \
+        do {                                           \
+            if (ADB_TRACING) {                         \
+                int save_errno = errno;                \
+                adb_mutex_lock(&D_lock);               \
+                errno = save_errno;                    \
+                fprintf(stderr, __VA_ARGS__ );         \
+                fflush(stderr);                        \
+                adb_mutex_unlock(&D_lock);             \
+                errno = save_errno;                    \
+           }                                           \
         } while (0)
 #else
 #  define  D(...)          ((void)0)
+#  define  DR(...)         ((void)0)
 #  define  ADB_TRACING     0
 #endif
 
@@ -346,7 +367,15 @@ typedef enum {
 #define print_packet(tag,p) do {} while (0)
 #endif
 
-#define DEFAULT_ADB_PORT 5037
+#if ADB_HOST_ON_TARGET
+/* adb and adbd are coexisting on the target, so use 5038 for adb
+ * to avoid conflicting with adbd's usage of 5037
+ */
+#  define DEFAULT_ADB_PORT 5038
+#else
+#  define DEFAULT_ADB_PORT 5037
+#endif
+
 #define DEFAULT_ADB_LOCAL_TRANSPORT_PORT 5555
 
 #define ADB_CLASS              0xff
@@ -385,6 +414,7 @@ int connection_state(atransport *t);
 #define CS_NOPERM     5 /* Insufficient permissions to communicate with the device */
 
 extern int HOST;
+extern int SHELL_EXIT_NOTIFY_FD;
 
 #define CHUNK_SIZE (64*1024)
 
