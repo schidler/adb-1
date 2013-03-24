@@ -18,7 +18,10 @@
 #      REVISION:  ---
 #===============================================================================
 
-autoheader
-autoreconf --install
 ./configure $@
+cd libcutils
+make
+cd ../libzipfile
+make
+cd ..
 make
